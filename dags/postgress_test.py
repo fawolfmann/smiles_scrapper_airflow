@@ -9,13 +9,14 @@ from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.python_operator import PythonOperator
 
 dag_params = {
+    'owner': 'airflow',
     'dag_id': 'Postgres_selectall_test',
-    'start_date': datetime.today(),
-    'schedule_interval': "@once"
-}
+    'start_date': airflow.utils.dates.days_ago(2)
+    }
 
 dag = DAG(
     'Postgres_selectall_test',
+    schedule_interval="@once",
     default_args=dag_params
     )
 

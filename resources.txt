@@ -1,0 +1,6 @@
+https://github.com/kjam/data-pipelines-course
+https://medium.com/@agungsantoso/creating-dynamic-workflows-in-airflow-706b5ca2844f
+
+https://www.astronomer.io/guides/subdags/ -> "Astronomer highly recommends staying away from SubDags. Airflow 1.10 has changed the default SubDag execution method to use the Sequential Executor to work around deadlocks caused by SubDags"
+
+**NOT USE SUBDAGS YET**

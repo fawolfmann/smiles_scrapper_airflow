@@ -9,6 +9,7 @@ from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.python_operator import PythonOperator
 
 dag_params = {
+    'owner': 'airflow',
     'dag_id': 'Postgres_drop_table',
     'start_date': datetime.today(),
 }
