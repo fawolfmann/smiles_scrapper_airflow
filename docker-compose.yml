@@ -1,0 +1,48 @@
+version: '3'
+services:
+  postgres:
+    image: postgres:9.6
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    ports:
+      - "5432:5432"
+    volumes:
+    - ./postgres-data:/var/lib/postgresql/data
+    restart: always
+    
+
+  webserver:
+    image: puckel/docker-airflow:1.10.1
+    build:
+      # context: https://github.com/puckel/docker-airflow.git#1.10.1
+      context: .
+      dockerfile: Dockerfile
+      args:
+        AIRFLOW_DEPS: gcp_api,s3
+        PYTHON_DEPS: sqlalchemy==1.2.0
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      - LOAD_EX=n
+      - EXECUTOR=Local
+      - FERNET_KEY=jsDPRErfv8Z_eVTnGfF8ywd19j4pyqE3NpdUBA_oRTo=
+      - AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT=600
+      - AIRFLOW__WEBSERVER__WEB_SERVER_MASTER_TIMEOUT=600
+      - AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT=600
+    volumes:
+      - ./examples/intro-example/dags:/usr/local/airflow/dags
+      - ./requirements.txt:/requirements.txt
+      # Uncomment to include custom plugins
+      # - ./plugins:/usr/local/airflow/plugins
+    ports:
+      - "8080:8080"
+      - "443:443"
+    command: webserver
+    healthcheck:
+      test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
