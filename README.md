@@ -2,9 +2,9 @@
 
 Get data from smiles.com.ar and save it to future analyze.
 
-Pipeline -> Airflow
-Database -> PostgreSQL
-Web crawler -> Pyppeteer
+- Pipeline -> Airflow
+- Database -> PostgreSQL
+- Web crawler -> Pyppeteer
 
 ## Instalation
 - Clone the repo
