@@ -6,7 +6,9 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.python_operator import PythonOperator
-from pyppeteer_smiles import get_data_URL, transform_data
+from airflow.utils.trigger_rule import TriggerRule
+from airflow.operators.postgres_operator import PostgresOperator
+from pyppeteer_smiles import get_data_URL, transform_data, insert_into_table
 from _datetime import timedelta
 
 
@@ -42,4 +44,11 @@ t2 = PythonOperator(
     dag=dag,
 )
 
-start >> t1 >> t2
+insert_data = PythonOperator(
+    task_id='insert_data',
+    python_callable=insert_into_table,
+    provide_context=True,
+    dag=dag,
+)
+
+start >> t1 >> t2 >> insert_data

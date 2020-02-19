@@ -4,6 +4,7 @@ from pyppeteer import launch
 import pprint
 import dateparser
 import re
+from airflow.hooks.postgres_hook import PostgresHook
 
 
 URL = "https://www.smiles.com.ar/emission?originAirportCode=COR&destinationAirportCode=EZE&departureDate=1582210800000&adults=1&children=0&infants=0&isFlexibleDateChecked=false&tripType=1&currencyCode=BRL"
@@ -82,7 +83,6 @@ def get_data_URL(**kwargs):
     URL = kwargs['URL']
     loop = asyncio.get_event_loop()
     result = loop.run_until_complete(extract_all(URL))
-    # kwargs['ti'].xcom_push(key='raw_data', value=result)
     return result
 
 
@@ -96,11 +96,27 @@ def transform_data(**kwargs):
             date = '/'.join(list(re.compile("([A-Z]+)(\d+)([A-Z]+)").split(row[1]))[2:4])
             date = dateparser.parse(date, languages=['pt', 'es'], date_formats=['%d/%b']).strftime('%Y-%m-%d')
             row[1] = date
-            row[4] = row[4] + ':00'
+            row[4] = ':00' + row[4]
             row[5] = int(row[5].replace('.', ''))
             row[6] = int(row[6].replace('.', ''))
             row[8] = row[8].split(' ')[-1]
-            data.append(row)
-        kwargs['ti'].xcom_push(key='transformed_data', value=data)
+            data.append(tuple(row))
+        # kwargs['ti'].xcom_push(key='transformed_data', value=data)
+        return data
     except TypeError:
         print('No se recibio datos')
+
+
+# PostgresHook
+def insert_into_table(**kwargs):
+    ti = kwargs['ti']
+    data = ti.xcom_pull(task_ids='transform_data')
+    request = '''INSERT INTO smiles_flight (flight_url, flight_date,
+                flight_org, flight_dest, flight_duration, flight_club_miles,
+                flight_miles, flight_airline, flight_stop)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s);'''
+    pg_hook = PostgresHook(postgres_conn_id='postgres_default')
+    connection = pg_hook.get_conn()
+    cursor = connection.cursor()
+    cursor.executemany(request, data)
+    # sources = cursor.fetchall()
