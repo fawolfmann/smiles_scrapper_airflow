@@ -14,3 +14,6 @@ Get data from smiles.com.ar and save it to future analyze.
  
 - open web browser on localhost:8080
   
+## Docker image
+Docker image and docker-compose from [puckel](https://github.com/puckel/docker-airflow.git)
+Modify to install Pyppeteer package
