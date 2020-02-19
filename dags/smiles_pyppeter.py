@@ -7,7 +7,8 @@ from airflow.models import Variable
 from airflow.operators import DummyOperator, PythonOperator, \
     BranchPythonOperator
 from airflow.utils.trigger_rule import TriggerRule
-from pyppeteer_smiles import get_data_URL, insert_into_table
+from pyppeteer_smiles import get_data_URL, insert_into_table, \
+    read_scraped_date, write_scraped_date
 import dateparser
 import re
 import numpy as np
@@ -66,6 +67,7 @@ def transform_data(**kwargs):
                 row[5] = int(row[5].replace('.', ''))
                 row[6] = int(row[6].replace('.', ''))
                 row[8] = row[8].split(' ')[-1]
+                row.insert(0, datetime.now().strftime('%Y-%m-%d'))
                 data.append(tuple(row))
         # kwargs['ti'].xcom_push(key='transformed_data', value=data)
         return data
@@ -89,16 +91,16 @@ Transform fetched data
 """
 
 # def gen_url_dates(**kwargs):
-date_start = datetime.now() + timedelta(days=30)
+date_start = read_scraped_date()
 date_end = date_start + timedelta(days=2)
 date_generated = [date_start + timedelta(days=x) for x in range(0, (date_end-date_start).days)]
 
-for date in date_generated:
+for i, date in enumerate(date_generated):
     date_ml = str(date.timestamp())[:8] + '00000'
     url_dated = 'https://www.smiles.com.ar/emission?originAirportCode=COR&destinationAirportCode=EZE&departureDate={}&adults=1&children=0&infants=0&isFlexibleDateChecked=false&tripType=1&currencyCode=BRL'.format(date_ml)
 
     get_data_op = PythonOperator(
-        task_id='get_data_COR_EZE_{}'.format(date.strftime('%Y-%m-%d')),
+        task_id='get_data_COR_EZE_{}'.format(i),
         python_callable=get_data_URL,
         op_kwargs={'URL': url_dated},
         trigger_rule=TriggerRule.ONE_SUCCESS,
@@ -108,7 +110,7 @@ for date in date_generated:
     branches.append(get_data_op.task_id)
     get_data_op.set_upstream(gen_url_branch)
     get_data_op.set_downstream(t2)
-
+    write_scraped_date(date.strftime('%Y-%m-%d'))
     get_data_op.doc_md = """
     #### Task Documentation
     Fetch data from passed url

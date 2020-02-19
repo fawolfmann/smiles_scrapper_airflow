@@ -3,6 +3,8 @@ import asyncio
 from pyppeteer import launch
 import pprint
 from airflow.hooks.postgres_hook import PostgresHook
+import subprocess
+import datetime
 
 URL = "https://www.smiles.com.ar/emission?originAirportCode=COR&destinationAirportCode=EZE&departureDate=1582210800000&adults=1&children=0&infants=0&isFlexibleDateChecked=false&tripType=1&currencyCode=BRL"
 URL1 = "https://www.smiles.com.ar/emission?originAirportCode=EZE&destinationAirportCode=MAD&departureDate=1583938800000&adults=1&children=0&infants=0&isFlexibleDateChecked=false&tripType=2&currencyCode=BRL"
@@ -89,10 +91,12 @@ def insert_into_table(**kwargs):
     data = ti.xcom_pull(task_ids='transform_data')
     print(data)
     if data is not None:
-        request = '''INSERT INTO smiles_flight (flight_url, flight_date,
+        request = '''INSERT INTO smiles_flight (scrpaed_date, flight_url, flight_date,
                     flight_org, flight_dest, flight_duration, flight_club_miles,
                     flight_miles, flight_airline, flight_stop)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s);'''
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (flight_url, flight_date, flight_miles,
+                    flight_airline, flight_stop) DO UPDATE;'''
         pg_hook = PostgresHook(postgres_conn_id='postgres_default')
         conn = pg_hook.get_conn()
         cursor = conn.cursor()
@@ -101,3 +105,20 @@ def insert_into_table(**kwargs):
         cursor.close()
         conn.close()
     # sources = cursor.fetchall()
+
+
+def read_scraped_date():
+    filename = '/usr/local/airflow/dags/dates_scraped_EZE_CBA.txt'
+    line = subprocess.check_output(['tail', '-1', filename])
+    if line is not None:
+        date = datetime.datetime.strptime(line, '%Y-%m-%d')
+    else:
+        date = datetime.datetime.strftime('%Y-%m-%d')
+    return date
+
+
+def write_scraped_date(date):
+    filename = '/usr/local/airflow/dags/dates_scraped_EZE_CBA.txt'
+    f = open(filename, "a")
+    f.write(date)
+    f.close()
