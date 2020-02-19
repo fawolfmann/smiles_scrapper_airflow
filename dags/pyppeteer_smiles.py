@@ -94,7 +94,10 @@ def insert_into_table(**kwargs):
                     flight_miles, flight_airline, flight_stop)
                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s);'''
         pg_hook = PostgresHook(postgres_conn_id='postgres_default')
-        connection = pg_hook.get_conn()
-        cursor = connection.cursor()
+        conn = pg_hook.get_conn()
+        cursor = conn.cursor()
         cursor.executemany(request, data)
+        conn.commit()
+        cursor.close()
+        conn.close()
     # sources = cursor.fetchall()
