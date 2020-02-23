@@ -13,6 +13,8 @@ import dateparser
 import re
 import numpy as np
 
+AMOUNT_DAYS = 2
+
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
@@ -55,21 +57,22 @@ def transform_data(**kwargs):
     ti = kwargs['ti']
     raw_data = ti.xcom_pull(task_ids=return_dates_branches())
     data = []
+    print(raw_data)
     if raw_data is not None:
         np_array = np.array(raw_data)
-        for date_row in np_array:
-            for row in date_row:
-                row = list(row)
-                date = '/'.join(list(re.compile("([A-Z]+)(\d+)([A-Z]+)").split(row[1]))[2:4])
-                date = dateparser.parse(date, languages=['pt', 'es'], date_formats=['%d/%b']).strftime('%Y-%m-%d')
-                row[1] = date
-                row[4] = ':00' + row[4]
-                row[5] = int(row[5].replace('.', ''))
-                row[6] = int(row[6].replace('.', ''))
-                row[8] = row[8].split(' ')[-1]
-                row.insert(0, datetime.now().strftime('%Y-%m-%d'))
-                data.append(tuple(row))
-        # kwargs['ti'].xcom_push(key='transformed_data', value=data)
+        flat_list = [item for sublist in raw_data for item in sublist]
+        for row in flat_list:
+            row = list(row)
+            # add À-ÿ for spanish accents
+            date = '/'.join(list(re.compile("([A-ZÀ-ÿ]+)(\d+)([A-ZÀ-ÿ]+)").split(row[1]))[2:4])
+            date = dateparser.parse(date, languages=['pt', 'es'], date_formats=['%d/%b']).strftime('%Y-%m-%d')
+            row[1] = date
+            row[4] = ':00' + row[4]
+            row[5] = int(row[5].replace('.', ''))
+            row[6] = int(row[6].replace('.', ''))
+            row[8] = row[8].split(' ')[-1]
+            row.insert(0, datetime.now().strftime('%Y-%m-%d'))
+            data.append(tuple(row))
         return data
     else:
         print('No se recibio datos')
@@ -91,8 +94,8 @@ Transform fetched data
 """
 
 # def gen_url_dates(**kwargs):
-date_start = read_scraped_date()
-date_end = date_start + timedelta(days=2)
+date_start = read_scraped_date() + timedelta(days=1)
+date_end = date_start + timedelta(days=AMOUNT_DAYS)
 date_generated = [date_start + timedelta(days=x) for x in range(0, (date_end-date_start).days)]
 
 for i, date in enumerate(date_generated):
@@ -110,7 +113,6 @@ for i, date in enumerate(date_generated):
     branches.append(get_data_op.task_id)
     get_data_op.set_upstream(gen_url_branch)
     get_data_op.set_downstream(t2)
-    write_scraped_date(date.strftime('%Y-%m-%d'))
     get_data_op.doc_md = """
     #### Task Documentation
     Fetch data from passed url
@@ -124,10 +126,18 @@ insert_data = PythonOperator(
     dag=dag,
 )
 
+
+set_scraped_date = PythonOperator(
+    task_id='set_date_variable',
+    python_callable=write_scraped_date,
+    dag=dag,
+    op_kwargs={'amount_days': AMOUNT_DAYS},
+)
+
 insert_data.doc_md = """
 #### Task Documentation
 Insert parsed and transformed data into table
 """
 t2.set_downstream(insert_data)
 gen_url_branch.set_upstream(start)
-# start >> t1 >> t2 >> insert_data
+set_scraped_date.set_upstream(insert_data)

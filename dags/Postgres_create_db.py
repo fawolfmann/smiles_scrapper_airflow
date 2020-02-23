@@ -27,7 +27,7 @@ create_table = PostgresOperator(
     sql='''
         CREATE TABLE smiles_flight (
             flight_id SERIAL PRIMARY KEY,
-            scrpaed_date DATE NOT NULL,
+            scraped_date DATE NOT NULL,
             flight_url VARCHAR(255) NOT NULL,
             flight_date DATE NOT NULL,
             flight_org CHAR(3) NOT NULL,
