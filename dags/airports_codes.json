@@ -1,0 +1,15 @@
+{
+  "airport_codes":{
+    "departures":[
+      ["EZE", "COR"],
+      ["SCL", "GRU"]
+      ],
+    "arrivals":[
+      "MAD",
+      "LIS",
+      "BCN",
+      "FCO",
+      "CDG"
+    ]
+  } 
+}

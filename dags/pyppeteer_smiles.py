@@ -7,13 +7,12 @@ import subprocess
 import datetime
 from airflow.models import Variable
 from _datetime import timedelta
-
-URL = "https://www.smiles.com.ar/emission?originAirportCode=COR&destinationAirportCode=EZE&departureDate=1582210800000&adults=1&children=0&infants=0&isFlexibleDateChecked=false&tripType=1&currencyCode=BRL"
-URL1 = "https://www.smiles.com.ar/emission?originAirportCode=EZE&destinationAirportCode=MAD&departureDate=1583938800000&adults=1&children=0&infants=0&isFlexibleDateChecked=false&tripType=2&currencyCode=BRL"
+import logging
 
 
 async def get_browser():
-    return await launch({"headless": True, 'args': ['--no-sandbox', '--disable-setuid-sandbox']})
+    return await launch({"headless": True,
+                        'args': ['--no-sandbox', '--disable-setuid-sandbox']})
 
 
 async def get_page(browser, url):
@@ -64,7 +63,8 @@ async def extract_data(page):
     for i in range(len(cost_miles_club)):
         urls.append(page.url)
 
-    result = list(zip(urls, date, departure, arrival, duration, cost_miles_club, cost_miles_list, scale, airline))
+    result = list(zip(urls, date, departure, arrival, duration,
+                      cost_miles_club, cost_miles_list, scale, airline))
 
     return result
 
@@ -84,6 +84,7 @@ def get_data_URL(**kwargs):
     URL = kwargs['URL']
     loop = asyncio.get_event_loop()
     result = loop.run_until_complete(extract_all(URL))
+    logging.info(result)
     return result
 
 
@@ -93,9 +94,10 @@ def insert_into_table(**kwargs):
     data = ti.xcom_pull(task_ids='transform_data')
     print(data)
     if data is not None:
-        request = '''INSERT INTO smiles_flight (scraped_date, flight_url, flight_date,
-                    flight_org, flight_dest, flight_duration, flight_club_miles,
-                    flight_miles, flight_airline, flight_stop)
+        request = '''INSERT INTO smiles_flight (scraped_date, flight_url,
+                    flight_date, flight_org, flight_dest, flight_duration,
+                    flight_club_miles, flight_miles, flight_airline,
+                    flight_stop)
                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);'''
         pg_hook = PostgresHook(postgres_conn_id='postgres_default')
         conn = pg_hook.get_conn()
@@ -104,11 +106,13 @@ def insert_into_table(**kwargs):
         conn.commit()
         cursor.close()
         conn.close()
-    # sources = cursor.fetchall()
 
 
-def read_scraped_date():
-    dates_var = Variable.get("dates_CBA_EZE", deserialize_json=True)
+def read_scraped_date(aiports):
+    dates_var = Variable.get("dates_{}_{}_{}".format(aiports[0][0],
+                                                     aiports[0][1],
+                                                     aiports[1]),
+                             deserialize_json=True)
     date_list = dates_var["dates_scraped"]
 
     if len(date_list) != 0:

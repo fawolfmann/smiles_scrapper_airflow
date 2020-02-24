@@ -1,8 +1,52 @@
 {
-  "dates_CBA_EZE":{
+  "dates_EZE_COR_MAD":{
     "dates_scraped":[
-      "2020-02-22",
-      "2020-02-23"
+      "2020-02-25"
       ]
-  } 
+  },
+  "dates_EZE_COR_BCN":{
+    "dates_scraped":[
+      "2020-02-25"
+      ]
+  },
+  "dates_EZE_COR_CDG":{
+    "dates_scraped":[
+      "2020-02-25"
+      ]
+  },
+  "dates_EZE_COR_FCO":{
+    "dates_scraped":[
+      "2020-02-25"
+      ]
+  },
+  "dates_EZE_COR_LIS":{
+    "dates_scraped":[
+      "2020-02-25"
+      ]
+  },
+  "dates_SCL_GRU_BCN":{
+    "dates_scraped":[
+      "2020-02-25"
+      ]
+  },
+  "dates_SCL_GRU_CDG":{
+    "dates_scraped":[
+      "2020-02-25"
+      ]
+  },
+  "dates_SCL_GRU_FCO":{
+    "dates_scraped":[
+      "2020-02-25"
+      ]
+  },
+  "dates_SCL_GRU_LIS":{
+    "dates_scraped":[
+      "2020-02-25"
+      ]
+  },
+  "dates_SCL_GRU_MAD":{
+    "dates_scraped":[
+      "2020-02-25"
+      ]
+  }
 }
