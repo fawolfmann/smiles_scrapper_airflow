@@ -9,7 +9,7 @@ from airflow.operators import DummyOperator, PythonOperator, \
 from airflow.operators.sensors import TimeDeltaSensor
 from airflow.utils.trigger_rule import TriggerRule
 from pyppeteer_smiles import get_data_URL, insert_into_table, \
-    read_scraped_date, write_scraped_date
+    read_scraped_date
 import dateparser
 import re
 import logging
@@ -66,7 +66,9 @@ def create_dag(dag_id,
                 date = '/'.join(list(re.compile("([A-ZÀ-ÿ]+)(\d+)([A-ZÀ-ÿ]+)").split(row[1]))[2:4])
                 date = dateparser.parse(date, languages=['pt', 'es'], date_formats=['%d/%b']).strftime('%Y-%m-%d')
                 row[1] = date
-                row[4] = '00:' + row[4]
+                td = row[4].split(':')
+                row[4] = str(timedelta(hours=int(td[0]),
+                                       minutes=int(td[1])))
                 row[5] = int(row[5].replace('.', ''))
                 row[6] = int(row[6].replace('.', ''))
                 row[8] = row[8].split(' ')[-1]
@@ -92,7 +94,7 @@ def create_dag(dag_id,
     """
 
     # def gen_url_dates(**kwargs):
-    date_start = read_scraped_date(airpots_codes) + timedelta(days=1)
+    date_start = read_scraped_date(airpots_codes) 
     date_end = date_start + timedelta(days=AMOUNT_DAYS)
     date_generated = [date_start + timedelta(days=x) for x in range(0, (date_end-date_start).days)]
 
@@ -127,20 +129,12 @@ def create_dag(dag_id,
         dag=dag,
     )
 
-    set_scraped_date = PythonOperator(
-        task_id='set_date_variable',
-        python_callable=write_scraped_date,
-        dag=dag,
-        op_kwargs={'amount_days': AMOUNT_DAYS},
-    )
-
     insert_data.doc_md = """
     #### Task Documentation
     Insert parsed and transformed data into table
     """
     t2.set_downstream(insert_data)
     gen_url_branch.set_upstream(start)
-    set_scraped_date.set_upstream(insert_data)
 
     return dag
 
@@ -157,8 +151,8 @@ for t, airport_code in enumerate(airport_combinations):
     airport_code_str = re.sub('\W+', '_', str(airport_code))
     dag_id = 'scrap_{}'.format(airport_code_str[:-1])
     # start_date = airflow.utils.dates.days_ago(2)
-    start_date = datetime(2020, 2, 23)
-    schedule = '@daily'
+    start_date = datetime(2020, 3, 23)
+    schedule = '@hourly'
     delta_sensor = 3*t
     default_args = {'owner': 'airflow',
                     'depends_on_past': False,

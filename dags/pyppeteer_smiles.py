@@ -107,25 +107,37 @@ def insert_into_table(**kwargs):
         cursor.close()
         conn.close()
 
+# select min and max date scraped and return the next date to scrap 
+def read_scraped_date(airports):
 
-def read_scraped_date(aiports):
-    dates_var = Variable.get("dates_{}_{}_{}".format(aiports[0][0],
-                                                     aiports[0][1],
-                                                     aiports[1]),
-                             deserialize_json=True)
-    date_list = dates_var["dates_scraped"]
+    dates_var = Variable.get("dates", deserialize_json=True)
+    start_date = datetime.datetime.strptime(dates_var["start_date"], "%Y-%m-%d")
+    end_date = datetime.datetime.strptime(dates_var["end_date"], "%Y-%m-%d")
 
-    if len(date_list) != 0:
-        date = datetime.datetime.strptime(date_list[-1], "%Y-%m-%d")
+    request = '''SELECT min(flight_date) as min_date,
+                max(flight_date) as max_date
+                FROM smiles_flight
+                WHERE smiles_flight.flight_org = \'{}\'
+                AND smiles_flight.flight_dest = \'{}\' '''
+
+    request.format(airports[0][0], airports[1])
+    pg_hook = PostgresHook(postgres_conn_id='postgres_default')
+    conn = pg_hook.get_conn()
+    cursor = conn.cursor()
+    cursor.execute(request)
+    sources = cursor.fetchall()
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    if sources[0][0] is not None:
+        min_date = sources[0][0]
+        max_date = sources[0][1]
+        if min_date > start_date and max_date < end_date:
+            return min_date + timedelta(days=1)
+        elif max_date < start_date:
+            return start_date
+        elif max_date + timedelta(days=1) > end_date:
+            return start_date
     else:
-        date = datetime.datetime.now()
-    return date
-
-
-def write_scraped_date(amount_days):
-    dates_var = Variable.get("dates_CBA_EZE", deserialize_json=True)
-    date_list = dates_var["dates_scraped"]
-    date = datetime.datetime.strptime(date_list[-1], "%Y-%m-%d")
-    date_list.append((date+timedelta(days=amount_days)).strftime("%Y-%m-%d"))
-    dates_var["dates_scraped"] = date_list
-    Variable.set("dates_CBA_EZE", dates_var, serialize_json=True)
+        return start_date
