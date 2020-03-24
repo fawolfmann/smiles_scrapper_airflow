@@ -22,12 +22,45 @@ dag = DAG(
 
 # PostgresHook
 def get_date_from_db():
-    request = "SELECT * FROM smiles_flight"
+    # request = "SELECT * FROM smiles_flight"
+    request2 = '''SELECT min(flight_date) as min_date,
+                max(flight_date) as max_date
+                FROM smiles_flight
+                WHERE smiles_flight.flight_org = 'EZE'
+                AND smiles_flight.flight_dest = 'MAD'
+                '''
     pg_hook = PostgresHook(postgres_conn_id='postgres_default')
     connection = pg_hook.get_conn()
     cursor = connection.cursor()
-    cursor.execute(request)
+    cursor.execute(request2)
     sources = cursor.fetchall()
+    cursor.close()
+    connection.close()
+    return sources
+
+
+def select_min_max_date():
+    conn = None
+    try:  
+        request = '''SELECT min(flight_date) as min_date,
+                    max(flight_date) as max_date
+                    FROM smiles_flight
+                    WHERE smiles_flight.flight_org = \'{}\'
+                    AND smiles_flight.flight_dest = \'{}\'
+                    '''
+
+        request = request.format('EZE', 'MAD')
+        pg_hook = PostgresHook(postgres_conn_id='postgres_default')
+        conn = pg_hook.get_conn()
+        cursor = conn.cursor()
+        cursor.execute(request)
+        sources = cursor.fetchall()
+        cursor.close()
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+    finally:
+        if conn is not None:
+            conn.close()
     return sources
 
 
@@ -49,7 +82,7 @@ start = DummyOperator(
 
 t2 = PythonOperator(
     task_id='select_all_hook',
-    python_callable=get_date_from_db,
+    python_callable=select_min_max_date,
     dag=dag,
 )
 

@@ -32,6 +32,7 @@ services:
       - AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT=600
       - AIRFLOW__WEBSERVER__WEB_SERVER_MASTER_TIMEOUT=600
       - AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT=600
+      - AIRFLOW__CORE__PARALLELISM=6
     volumes:
       - ./dags:/usr/local/airflow/dags
       - ./requirements.txt:/requirements.txt

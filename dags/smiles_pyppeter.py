@@ -14,7 +14,7 @@ import dateparser
 import re
 import logging
 
-AMOUNT_DAYS = 2
+AMOUNT_DAYS = 3
 
 
 def create_dag(dag_id,
@@ -36,10 +36,15 @@ def create_dag(dag_id,
     ### procesing and dumping on postgresql
     """
 
-    start = TimeDeltaSensor(
+    """start = TimeDeltaSensor(
         task_id='wait_to_start',
         delta=timedelta(minutes=delta_sensor),
-        dag=dag)
+        dag=dag)"""
+
+    start = DummyOperator(
+        task_id="start",
+        dag=dag
+    )
 
     branches = []
 
@@ -150,8 +155,9 @@ for t, airport_code in enumerate(airport_combinations):
     # airport_code = str(airport_code).replace('\W+', '_')
     airport_code_str = re.sub('\W+', '_', str(airport_code))
     dag_id = 'scrap_{}'.format(airport_code_str[:-1])
-    # start_date = airflow.utils.dates.days_ago(2)
-    start_date = datetime(2020, 3, 23)
+    start_date = datetime(2020, 3, 25)
+    # schedule = '@once'
+    # start_date = datetime(2020, 3, 23)
     schedule = '@hourly'
     delta_sensor = 3*t
     default_args = {'owner': 'airflow',

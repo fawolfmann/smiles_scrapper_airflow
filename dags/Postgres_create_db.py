@@ -11,7 +11,7 @@ from airflow.operators.python_operator import PythonOperator
 dag_params = {
     'owner': 'airflow',
     'dag_id': 'Postgres_create_db',
-    'start_date': datetime.today(),
+    'start_date': airflow.utils.dates.days_ago(2)
     
 }
 
